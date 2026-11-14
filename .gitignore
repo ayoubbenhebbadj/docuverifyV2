@@ -1,0 +1,19 @@
+# Secrets: never commit these
+.env
+*.env
+!.env.example
+
+# Customer documents: never commit real shipments
+*.pdf
+*.docx
+*.jpg
+*.jpeg
+*.png
+samples/
+tests-data/
+
+# Python / Node
+.venv/
+__pycache__/
+*.pyc
+node_modules/

@@ -1,0 +1,38 @@
+# Render Blueprint: backend only. The frontend is deployed separately on Vercel.
+services:
+  - type: web
+    name: docuverify-api
+    runtime: python
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: OPENROUTER_API_KEY
+        sync: false            # you type it in the Render dashboard, never in Git
+      - key: OPENROUTER_MODEL
+        value: nvidia/nemotron-3.5-super-vl:free
+      - key: ALLOWED_ORIGINS
+        sync: false            # your Vercel address, e.g. https://docuverify.vercel.app
+      - key: APP_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      # Free plan = 512 MB RAM: keep the workload small.
+      - key: MAX_CONCURRENT_AUDITS
+        value: "1"
+      - key: MAX_FILE_MB
+        value: "10"
+      - key: MAX_TOTAL_PAGES
+        value: "20"
+      - key: PDF_ZOOM
+        value: "1.5"
+      # Free OpenRouter models allow few requests per day: fewer retries.
+      - key: MAX_ATTEMPTS
+        value: "2"
+      - key: RATE_LIMIT_PER_HOUR
+        value: "10"

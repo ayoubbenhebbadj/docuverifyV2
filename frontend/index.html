@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DocuVerify AI</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    body { background: #fff !important; }
+    .card { box-shadow: none !important; break-inside: avoid; }
+  }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen">
+
+<header class="bg-slate-900 text-white no-print">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
+    <div class="flex items-center gap-3">
+      <div class="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold">DV</div>
+      <div>
+        <h1 class="text-lg font-semibold leading-tight">DocuVerify AI</h1>
+        <p class="text-xs text-slate-400" data-i18n="tagline"></p>
+      </div>
+    </div>
+    <div class="inline-flex rounded-lg bg-slate-800 p-1" role="group" aria-label="Language / Langue">
+      <button type="button" data-lang="en" class="lang-btn rounded-md px-3 py-1 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400">EN</button>
+      <button type="button" data-lang="fr" class="lang-btn rounded-md px-3 py-1 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400">FR</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+
+  <!-- Upload -->
+  <section id="upload-section" class="card bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 no-print">
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+      <div>
+        <h2 class="text-base font-semibold text-slate-900" data-i18n="upload_title"></h2>
+        <p class="text-sm text-slate-500 mt-1" data-i18n="upload_sub"></p>
+        <p id="server-status" class="mt-2 flex items-center gap-2 text-xs text-slate-500"></p>
+      </div>
+      <span id="counter" class="text-sm font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-600">0 / 8</span>
+    </div>
+
+    <label id="dropzone" for="file-input"
+      class="mt-4 flex flex-col items-center justify-center text-center cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 hover:border-blue-500 hover:bg-blue-50 transition px-6 py-10 focus-within:ring-2 focus-within:ring-blue-500">
+      <svg class="h-10 w-10 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      <p class="mt-3 text-sm font-medium text-slate-700"><span data-i18n="drop_a"></span> <span class="text-blue-600" data-i18n="drop_b"></span></p>
+      <p class="text-xs text-slate-500 mt-1" data-i18n="drop_note"></p>
+      <input id="file-input" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.docx" class="sr-only">
+    </label>
+
+    <ul id="file-list" class="mt-4 divide-y divide-slate-100"></ul>
+
+    <div class="mt-5 flex items-center gap-3 flex-wrap">
+      <button id="verify-btn" disabled
+        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition">
+        <svg id="spinner" class="hidden h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path d="M4 12a8 8 0 0 1 8-8" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+        <span id="verify-label"></span>
+      </button>
+      <button id="clear-btn" type="button" class="hidden text-sm text-slate-500 hover:text-slate-800 underline" data-i18n="clear"></button>
+      <p id="loading-note" class="hidden text-sm text-slate-500" data-i18n="loading"></p>
+    </div>
+
+    <div id="error-box" role="alert" class="hidden mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800"></div>
+  </section>
+
+  <!-- Results -->
+  <div id="results" class="hidden space-y-8">
+
+    <div id="lang-note" class="hidden no-print rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"></div>
+
+    <section class="card bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="flex-1 min-w-[240px]">
+          <span id="verdict-badge" class="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold"></span>
+          <h2 class="mt-3 text-base font-semibold text-slate-900" data-i18n="summary_title"></h2>
+          <p id="summary" class="mt-1 text-sm text-slate-600 max-w-prose"></p>
+        </div>
+        <button id="print-btn" class="no-print inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2M7 14h10v7H7z"/></svg>
+          <span data-i18n="print"></span>
+        </button>
+      </div>
+    </section>
+
+    <section class="card bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6">
+      <div class="flex items-baseline justify-between gap-3 flex-wrap">
+        <h2 class="text-base font-semibold text-slate-900" data-i18n="checklist_title"></h2>
+        <p id="checklist-count" class="text-sm text-slate-500"></p>
+      </div>
+      <div id="checklist" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"></div>
+    </section>
+
+    <section class="card bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-5 sm:p-6 pb-3">
+        <h2 class="text-base font-semibold text-slate-900" data-i18n="matrix_title"></h2>
+        <p class="text-sm text-slate-500 mt-1" data-i18n="matrix_sub"></p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="bg-slate-50 text-slate-600 border-y border-slate-200">
+            <tr>
+              <th class="px-5 py-3 font-medium whitespace-nowrap" data-i18n="col_field"></th>
+              <th class="px-5 py-3 font-medium whitespace-nowrap" data-i18n="col_valid"></th>
+              <th class="px-5 py-3 font-medium min-w-[240px]" data-i18n="col_values"></th>
+              <th class="px-5 py-3 font-medium min-w-[240px]" data-i18n="col_notes"></th>
+            </tr>
+          </thead>
+          <tbody id="matrix" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="actions-box" class="card rounded-xl border border-amber-300 bg-amber-50 p-5 sm:p-6">
+      <h2 class="flex items-center gap-2 text-base font-semibold text-amber-900">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <span data-i18n="actions_title"></span>
+      </h2>
+      <ul id="actions" class="mt-3 space-y-2 text-sm text-amber-900"></ul>
+    </section>
+  </div>
+</main>
+
+<footer class="max-w-6xl mx-auto px-4 sm:px-6 pb-10 text-xs text-slate-400 no-print" data-i18n="footer"></footer>
+
+<script src="config.js"></script>
+<script>
+const API_BASE = (window.DV_API_BASE || "").replace(/\/+$/, "");
+const MAXMB = window.DV_MAX_MB || 10;
+const MAX_FILES = 8, MAX_BYTES = MAXMB * 1024 * 1024;
+const OK_EXT = ['pdf', 'png', 'jpg', 'jpeg', 'docx'];
+
+const I18N = {
+  en: {
+    tagline: 'Import / export trade document compliance audit',
+    upload_title: 'Upload shipment documents',
+    upload_sub: `PDF, PNG, JPG or DOCX. Up to 8 files, ${MAXMB} MB each.`,
+    drop_a: 'Drag files here or', drop_b: 'browse',
+    drop_note: 'Arabic, English and French documents are supported',
+    files: n => `${n} / ${MAX_FILES} files`,
+    run: 'Run compliance audit', running: 'Auditing…', clear: 'Clear all',
+    loading: 'Inspecting documents. This can take up to a minute.',
+    summary_title: 'Executive summary', print: 'Print / export PDF',
+    checklist_title: 'Mandatory document checklist',
+    present_count: (n, m) => `${n} of ${m} present`,
+    present: '✓ Present', absent: '✕ Absent',
+    matrix_title: 'Cross-document validation',
+    matrix_sub: 'Key fields compared across every document in the batch.',
+    col_field: 'Data field', col_valid: 'Validation', col_values: 'Extracted values', col_notes: 'Audit notes',
+    no_matrix: 'No cross-validation data returned.',
+    actions_title: 'Action required before sign-off',
+    no_actions: 'No corrections needed. Confirm the findings and sign off.',
+    footer: 'AI-assisted review. A qualified employee must confirm findings before customs submission.',
+    verdict: { 'Approved': 'Approved', 'Needs Review': 'Needs review', 'Rejected': 'Rejected' },
+    match: { 'Match': 'Match', 'Partial': 'Minor diff', 'Mismatch': 'Mismatch' },
+    remove: name => `Remove ${name}`,
+    e_type: n => `${n}: unsupported file type`,
+    e_size: n => `${n}: larger than ${MAXMB} MB`,
+    e_limit: n => `Limit of ${MAX_FILES} files reached; skipped ${n}`,
+    e_generic: 'Something went wrong. Check your connection and try again.',
+    e_network: 'Cannot reach the DocuVerify server. If it was idle it may still be waking up (free hosting): wait about a minute and try again.',
+    srv_checking: 'Waking the server… (free hosting can take up to a minute)',
+    srv_ready: 'Server ready',
+    srv_down: 'Server unreachable. It may still be starting; try again in a minute.',
+    e_file: 'This page was opened as a local file. Start the server and open http://localhost:8000 instead.',
+    e_status: s => `Request failed (${s})`,
+    lang_note: l => `These results were written in ${l}. Run the audit again to get them in the selected language.`,
+    lang_names: { en: 'English', fr: 'French' },
+    docs: {}, fields: {}
+  },
+  fr: {
+    tagline: "Audit de conformité des documents d'import / export",
+    upload_title: "Téléverser les documents d'expédition",
+    upload_sub: `PDF, PNG, JPG ou DOCX. Jusqu'à 8 fichiers, ${MAXMB} Mo chacun.`,
+    drop_a: 'Glissez les fichiers ici ou', drop_b: 'parcourir',
+    drop_note: 'Les documents en arabe, en anglais et en français sont pris en charge',
+    files: n => `${n} / ${MAX_FILES} fichiers`,
+    run: "Lancer l'audit de conformité", running: 'Audit en cours…', clear: 'Tout effacer',
+    loading: "Inspection des documents. Cela peut prendre jusqu'à une minute.",
+    summary_title: 'Résumé', print: 'Imprimer / exporter en PDF',
+    checklist_title: 'Liste des documents obligatoires',
+    present_count: (n, m) => `${n} sur ${m} présents`,
+    present: '✓ Présent', absent: '✕ Absent',
+    matrix_title: 'Validation croisée des documents',
+    matrix_sub: 'Champs clés comparés dans tous les documents du lot.',
+    col_field: 'Champ', col_valid: 'Validation', col_values: 'Valeurs extraites', col_notes: "Remarques d'audit",
+    no_matrix: 'Aucune donnée de validation croisée reçue.',
+    actions_title: 'Actions requises avant validation',
+    no_actions: 'Aucune correction nécessaire. Confirmez les résultats avant validation.',
+    footer: "Revue assistée par IA. Un employé qualifié doit confirmer les résultats avant toute soumission en douane.",
+    verdict: { 'Approved': 'Approuvé', 'Needs Review': 'À vérifier', 'Rejected': 'Rejeté' },
+    match: { 'Match': 'Conforme', 'Partial': 'Écart mineur', 'Mismatch': 'Non conforme' },
+    remove: name => `Supprimer ${name}`,
+    e_type: n => `${n} : type de fichier non pris en charge`,
+    e_size: n => `${n} : dépasse ${MAXMB} Mo`,
+    e_limit: n => `Limite de ${MAX_FILES} fichiers atteinte ; ${n} ignoré`,
+    e_generic: 'Une erreur est survenue. Vérifiez votre connexion et réessayez.',
+    e_network: "Impossible de joindre le serveur DocuVerify. S'il était inactif, il se réveille peut-être encore (hébergement gratuit) : patientez environ une minute puis réessayez.",
+    srv_checking: "Réveil du serveur… (l'hébergement gratuit peut prendre jusqu'à une minute)",
+    srv_ready: 'Serveur prêt',
+    srv_down: "Serveur injoignable. Il démarre peut-être encore ; réessayez dans une minute.",
+    e_file: "Cette page a été ouverte comme un fichier local. Lancez le serveur puis ouvrez http://localhost:8000.",
+    e_status: s => `Échec de la requête (${s})`,
+    lang_note: l => `Ces résultats ont été rédigés en ${l}. Relancez l'audit pour les obtenir dans la langue choisie.`,
+    lang_names: { en: 'anglais', fr: 'français' },
+    docs: {
+      'Commercial Invoice': 'Facture commerciale', 'Packing List': 'Liste de colisage',
+      'Bill of Lading (B/L)': 'Connaissement (B/L)', 'Certificate of Origin': "Certificat d'origine",
+      'Certificate of Quality': 'Certificat de qualité', 'Certificate of Conformity': 'Certificat de conformité',
+      'Phytosanitary Certificate': 'Certificat phytosanitaire', 'Fumigation Certificate': 'Certificat de fumigation'
+    },
+    fields: {
+      'Exporter': 'Exportateur', 'Importer': 'Importateur', 'Invoice Number & Date': 'N° et date de facture',
+      'B/L Number': 'N° de connaissement (B/L)', 'Number of Packages': 'Nombre de colis',
+      'Weights (Gross/Net)': 'Poids (brut/net)', 'Ports (Loading/Discharge)': 'Ports (chargement/déchargement)',
+      'Container Numbers': 'N° de conteneurs'
+    }
+  }
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtSize = b => b < 1024 * 1024 ? (b / 1024).toFixed(0) + ' KB' : (b / 1024 / 1024).toFixed(1) + ' MB';
+
+let queue = [], lastResult = null, errorFn = null;
+let lang = 'en';
+try { lang = localStorage.getItem('dv_lang') || ''; } catch (e) {}
+if (!I18N[lang]) lang = (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+const t = () => I18N[lang];
+
+let serverState = 'checking';
+function renderServer() {
+  const el = $('server-status');
+  const dot = { checking: 'bg-amber-500 animate-pulse', ready: 'bg-green-500', down: 'bg-red-500' }[serverState];
+  el.innerHTML = `<span class="inline-block h-2 w-2 rounded-full ${dot}"></span><span>${esc(t()['srv_' + serverState])}</span>`;
+}
+async function pingServer() {
+  serverState = 'checking'; renderServer();
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 120000);
+  try {
+    const r = await fetch(API_BASE + '/api/health', { signal: ctl.signal, cache: 'no-store' });
+    serverState = r.ok ? 'ready' : 'down';
+  } catch (e) { serverState = 'down'; }
+  clearTimeout(timer);
+  renderServer();
+}
+
+function showError(msgOrFn) {
+  errorFn = typeof msgOrFn === 'function' ? msgOrFn : null;
+  const box = $('error-box');
+  const text = typeof msgOrFn === 'function' ? msgOrFn() : msgOrFn;
+  box.textContent = text || '';
+  box.classList.toggle('hidden', !text);
+}
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t()[el.dataset.i18n]; });
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    const on = b.dataset.lang === lang;
+    b.setAttribute('aria-pressed', on);
+    b.className = 'lang-btn rounded-md px-3 py-1 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 ' +
+      (on ? 'bg-blue-600 text-white' : 'text-slate-300 hover:text-white');
+  });
+  $('verify-label').textContent = $('verify-btn').dataset.busy ? t().running : t().run;
+  if (errorFn) showError(errorFn);
+  renderQueue();
+  renderServer();
+  if (lastResult) renderResults(lastResult, false);
+}
+
+document.querySelectorAll('.lang-btn').forEach(b => b.addEventListener('click', () => {
+  lang = b.dataset.lang;
+  try { localStorage.setItem('dv_lang', lang); } catch (e) {}
+  applyLang();
+}));
+
+function addFiles(list) {
+  showError('');
+  const problems = [];
+  for (const f of list) {
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (!OK_EXT.includes(ext)) { problems.push(n => t().e_type(n)); problems[problems.length - 1].n = f.name; continue; }
+    if (f.size > MAX_BYTES) { problems.push(n => t().e_size(n)); problems[problems.length - 1].n = f.name; continue; }
+    if (queue.some(q => q.name === f.name && q.size === f.size)) continue;
+    if (queue.length >= MAX_FILES) { problems.push(n => t().e_limit(n)); problems[problems.length - 1].n = f.name; continue; }
+    queue.push(f);
+  }
+  if (problems.length) showError(() => problems.map(p => p(p.n)).join('. ') + '.');
+  renderQueue();
+}
+
+function renderQueue() {
+  $('counter').textContent = t().files(queue.length);
+  $('counter').className = 'text-sm font-medium px-3 py-1 rounded-full ' +
+    (queue.length ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600');
+  $('file-list').innerHTML = queue.map((f, i) => `
+    <li class="flex items-center justify-between gap-3 py-2.5">
+      <div class="flex items-center gap-3 min-w-0">
+        <span class="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 uppercase">${esc(f.name.split('.').pop())}</span>
+        <span class="truncate text-sm text-slate-700">${esc(f.name)}</span>
+        <span class="shrink-0 text-xs text-slate-400">${fmtSize(f.size)}</span>
+      </div>
+      <button type="button" data-i="${i}" aria-label="${esc(t().remove(f.name))}" class="remove shrink-0 rounded p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </li>`).join('');
+  $('verify-btn').disabled = queue.length === 0 || !!$('verify-btn').dataset.busy;
+  $('clear-btn').classList.toggle('hidden', queue.length === 0);
+}
+
+$('file-list').addEventListener('click', e => {
+  const b = e.target.closest('.remove'); if (!b) return;
+  queue.splice(+b.dataset.i, 1); renderQueue();
+});
+$('clear-btn').addEventListener('click', () => { queue = []; showError(''); renderQueue(); });
+$('file-input').addEventListener('change', e => { addFiles([...e.target.files]); e.target.value = ''; });
+
+const dz = $('dropzone');
+['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('border-blue-500', 'bg-blue-50'); }));
+['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('border-blue-500', 'bg-blue-50'); }));
+dz.addEventListener('drop', e => addFiles([...e.dataTransfer.files]));
+
+function setLoading(on) {
+  if (on) $('verify-btn').dataset.busy = '1'; else delete $('verify-btn').dataset.busy;
+  $('spinner').classList.toggle('hidden', !on);
+  $('loading-note').classList.toggle('hidden', !on);
+  $('verify-label').textContent = on ? t().running : t().run;
+  $('verify-btn').disabled = on || queue.length === 0;
+}
+
+$('verify-btn').addEventListener('click', async () => {
+  showError(''); setLoading(true);
+  $('results').classList.add('hidden'); lastResult = null;
+  const fd = new FormData();
+  queue.forEach(f => fd.append('files', f));
+  fd.append('lang', lang);
+  try {
+    const res = await fetch(API_BASE + '/api/verify', { method: 'POST', body: fd });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(typeof body.detail === 'string' ? body.detail : t().e_status(res.status));
+    lastResult = body;
+    renderResults(body, true);
+  } catch (err) {
+    if (err instanceof TypeError) {
+      showError(() => location.protocol === 'file:' ? t().e_file : t().e_network);
+    } else {
+      showError(err.message || (() => t().e_generic));
+    }
+  } finally { setLoading(false); }
+});
+
+const VERDICT = {
+  'Approved':     'bg-green-100 text-green-800 ring-1 ring-green-300',
+  'Needs Review': 'bg-amber-100 text-amber-800 ring-1 ring-amber-300',
+  'Rejected':     'bg-red-100 text-red-800 ring-1 ring-red-300',
+};
+const MATCH_CLS = { 'Match': 'bg-green-100 text-green-800', 'Partial': 'bg-amber-100 text-amber-800', 'Mismatch': 'bg-red-100 text-red-800' };
+
+function renderResults(r, scroll) {
+  const L = t();
+  const v = $('verdict-badge');
+  v.className = 'inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ' + (VERDICT[r.overall_status] || VERDICT['Needs Review']);
+  v.textContent = L.verdict[r.overall_status] || r.overall_status;
+  $('summary').textContent = r.summary;
+
+  const note = $('lang-note');
+  const mismatch = r.lang && r.lang !== lang;
+  note.classList.toggle('hidden', !mismatch);
+  if (mismatch) note.textContent = L.lang_note(L.lang_names[r.lang] || r.lang);
+
+  const docs = r.required_documents || [];
+  $('checklist-count').textContent = L.present_count(docs.filter(d => d.status === 'Present').length, docs.length);
+  $('checklist').innerHTML = docs.map(d => {
+    const ok = d.status === 'Present';
+    return `<div class="rounded-lg border ${ok ? 'border-slate-200' : 'border-red-200 bg-red-50/50'} p-4">
+      <div class="flex items-start justify-between gap-2">
+        <h3 class="text-sm font-medium text-slate-900">${esc(L.docs[d.name] || d.name)}</h3>
+        <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${ok ? L.present : L.absent}</span>
+      </div>
+      <p class="mt-2 text-xs text-slate-500 break-words">${esc(d.page_or_file)}</p>
+      ${d.notes ? `<p class="mt-1 text-xs text-slate-600">${esc(d.notes)}</p>` : ''}
+    </div>`;
+  }).join('');
+
+  $('matrix').innerHTML = (r.cross_validation || []).map(c => {
+    const st = MATCH_CLS[c.status] ? c.status : 'Partial';
+    return `<tr class="align-top">
+      <td class="px-5 py-3 font-medium text-slate-900 whitespace-nowrap">${esc(L.fields[c.field] || c.field)}</td>
+      <td class="px-5 py-3"><span class="rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${MATCH_CLS[st]}">${esc(L.match[st])}</span></td>
+      <td class="px-5 py-3 text-slate-700 break-words" dir="auto">${esc(c.extracted_values)}</td>
+      <td class="px-5 py-3 text-slate-600" dir="auto">${esc(c.details)}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="4" class="px-5 py-6 text-center text-slate-500">${esc(L.no_matrix)}</td></tr>`;
+
+  const acts = r.action_items || [];
+  $('actions').innerHTML = acts.length
+    ? acts.map(a => `<li class="flex gap-2"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-600"></span><span dir="auto">${esc(a)}</span></li>`).join('')
+    : `<li>${esc(L.no_actions)}</li>`;
+
+  $('results').classList.remove('hidden');
+  if (scroll) $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+$('print-btn').addEventListener('click', () => window.print());
+applyLang();
+pingServer();
+</script>
+</body>
+</html>
